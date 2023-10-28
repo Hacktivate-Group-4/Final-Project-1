@@ -3,6 +3,8 @@ function authorization(req, res, next) {
   const reqId = req.params.id;
   const authenticatedUser = res.locals.user;
 
+  console.log("ini author" + authenticatedUser);
+
   if (!authenticatedUser) {
     return res.status(401).json({
       name: "Unauthorized",

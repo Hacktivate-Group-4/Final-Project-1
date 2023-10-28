@@ -1,46 +1,138 @@
 const request = require("supertest");
-const app = require("../app");
-const { user, photo } = require("../models");
+const app = require("../index");
+const dotenv = require("dotenv");
+const { Pool } = require("pg");
+
+dotenv.config();
+
+const db = new Pool({
+  connectionString: process.env.DB_CONNECTIONS_STRING,
+});
 
 const dataUser = {
-  username: "arihendra",
   email: "arihendra@mail.com",
   password: "password",
 };
 
-let authToken; // To store the authentication token
+let authToken;
 
-describe("Test Cases for API create photo", () => {
-  beforeAll(async () => {
+describe("Test Cases for User Registration and Login", () => {
+  beforeAll(async (done) => {
     try {
-      // Create a user and generate an authentication token
-      const userResponse = await request(app).post("/users/register").send(dataUser);
-      const loginResponse = await request(app).post("/users/login").send({
+      const query = {
+        text: "DELETE FROM Users",
+      };
+
+      await db.query(query);
+
+      done();
+    } catch (error) {
+      console.error(error);
+      done(error);
+    }
+  });
+
+  afterAll(async (done) => {
+    try {
+      const query = {
+        text: "DELETE FROM Users",
+      };
+
+      await db.query(query);
+
+      done();
+    } catch (error) {
+      console.error(error);
+      done(error);
+    }
+  });
+
+  it("Should register a user and return a success response", (done) => {
+    request(app)
+      .post("/api/v1/users/register")
+      .send(dataUser)
+      .expect(201)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+
+  it("Should return an error response for registering with an existing email", (done) => {
+    request(app)
+      .post("/api/v1/users/register")
+      .send(dataUser)
+      .expect(400)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+
+  it("Should login a user and return a success response", (done) => {
+    request(app)
+      .post("/api/v1/users/login")
+      .send(dataUser)
+      .expect(200)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+
+  it("Should return an error response for logging in with incorrect email or password", (done) => {
+    request(app)
+      .post("/api/v1/users/login")
+      .send({ email: dataUser.email, password: "wrongpassword" })
+      .expect(401)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+});
+
+describe("Test Cases for API create Reflection", () => {
+  beforeAll(async (done) => {
+    try {
+      const userResponse = await request(app).post("/api/v1/users/register").send(dataUser);
+      const loginResponse = await request(app).post("/api/v1/users/login").send({
         email: dataUser.email,
         password: dataUser.password,
       });
+      authToken = loginResponse.body.access_token;
 
-      authToken = loginResponse.body.token;
+      done();
     } catch (error) {
       console.error(error);
+      done(error);
     }
   });
 
-  afterAll(async () => {
+  afterAll(async (done) => {
     try {
-      // Destroy the user and related data
-      await user.destroy({ where: {} });
-      await photo.destroy({ where: {} });
+      const query = {
+        text: "DELETE FROM Users",
+      };
+
+      await db.query(query);
+
+      done();
     } catch (error) {
       console.error(error);
+      done(error);
     }
   });
 
-  it("Should return a success response", (done) => {
-    // Make a request to create a photo with the authToken
+  it("Should create a Reflection and return a success response", (done) => {
     request(app)
-      .post("/photos")
-      .set("token", authToken) // Use "token" header for authentication
+      .post("/api/v1/reflections")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        success: "Test Success",
+        low_point: "Test Low Point",
+        take_away: "Test Take Away",
+      })
       .expect(201)
       .end((err, res) => {
         if (err) return done(err);
@@ -49,9 +141,13 @@ describe("Test Cases for API create photo", () => {
   });
 
   it("Should return an error response without authentication", (done) => {
-    // Make a request to create a photo without authentication
     request(app)
-      .post("/photos")
+      .post("/api/v1/reflections")
+      .send({
+        success: "Test Success",
+        low_point: "Test Low Point",
+        take_away: "Test Take Away",
+      })
       .expect(401)
       .end((err, res) => {
         if (err) return done(err);
@@ -60,37 +156,46 @@ describe("Test Cases for API create photo", () => {
   });
 });
 
-describe("Test Cases for API get all photos", () => {
-  beforeAll(async () => {
+describe("Test Cases for API get all Reflections", () => {
+  beforeAll(async (done) => {
     try {
       // Create a user and generate an authentication token
-      const userResponse = await request(app).post("/users/register").send(dataUser);
-      const loginResponse = await request(app).post("/users/login").send({
+      const userResponse = await request(app).post("/api/v1/users/register").send(dataUser);
+
+      // Login the user and store the token
+      const loginResponse = await request(app).post("/api/v1/users/login").send({
         email: dataUser.email,
         password: dataUser.password,
       });
+      authToken = loginResponse.body.access_token;
 
-      authToken = loginResponse.body.token;
+      done();
     } catch (error) {
       console.error(error);
+      done(error);
     }
   });
 
-  afterAll(async () => {
+  afterAll(async (done) => {
     try {
-      // Destroy the user and related data
-      await user.destroy({ where: {} });
-      await photo.destroy({ where: {} });
+      // Clean up the user data
+      const query = {
+        text: "DELETE FROM Users",
+      };
+
+      await db.query(query);
+
+      done();
     } catch (error) {
       console.error(error);
+      done(error);
     }
   });
 
-  it("Should return a success response", (done) => {
-    // Make a request to get all photos with the authToken
+  it("Should get all Reflections and return a success response", (done) => {
     request(app)
-      .get("/photos")
-      .set("token", authToken) // Use "token" header for authentication
+      .get("/api/v1/reflections")
+      .set("Authorization", `Bearer ${authToken}`)
       .expect(200)
       .end((err, res) => {
         if (err) return done(err);
@@ -99,9 +204,8 @@ describe("Test Cases for API get all photos", () => {
   });
 
   it("Should return an error response without authentication", (done) => {
-    // Make a request to get all photos without authentication
     request(app)
-      .get("/photos")
+      .get("/api/v1/reflections")
       .expect(401)
       .end((err, res) => {
         if (err) return done(err);
@@ -110,46 +214,59 @@ describe("Test Cases for API get all photos", () => {
   });
 });
 
-describe("Test Cases for API get photo by ID", () => {
-  let photoId; // To store the photo ID
+describe("Test Cases for API get Reflection by ID", () => {
+  let reflectionId; // To store the Reflection ID
 
-  beforeAll(async () => {
+  beforeAll(async (done) => {
     try {
-      // login dan register
-      const userResponse = await request(app).post("/users/register").send(dataUser);
-      const loginResponse = await request(app).post("/users/login").send({
+      // Register and login
+      const userResponse = await request(app).post("/api/v1/users/register").send(dataUser);
+      const loginResponse = await request(app).post("/api/v1/users/login").send({
         email: dataUser.email,
         password: dataUser.password,
       });
 
-      authToken = loginResponse.body.token;
-      // Create a photo
+      authToken = loginResponse.body.access_token;
+
+      // Create a Reflection
       const createResponse = await request(app)
-        .post("/photos")
-        .set("token", authToken) // Use "token" header for authentication
+        .post("/api/v1/reflections")
+        .set("Authorization", `Bearer ${authToken}`) // Use "Authorization" header for authentication
+        .send({
+          success: "Test Success",
+          low_point: "Test Low Point",
+          take_away: "Test Take Away",
+        })
         .expect(201);
 
-      photoId = createResponse.body.id;
+      reflectionId = createResponse.body.id;
+      done();
     } catch (error) {
       console.error(error);
+      done(error);
     }
   });
 
-  afterAll(async () => {
+  afterAll(async (done) => {
     try {
-      // Destroy the user and related data
-      await user.destroy({ where: {} });
-      await photo.destroy({ where: {} });
+      // Clean up the user data
+      const query = {
+        text: "DELETE FROM Users",
+      };
+
+      await db.query(query);
+
+      done();
     } catch (error) {
       console.error(error);
+      done(error);
     }
   });
 
-  it("Should return a success response", (done) => {
-    // Make a request to get the photo by ID with the authToken
+  it("Should get a Reflection by ID and return a success response", (done) => {
     request(app)
-      .get(`/photos/${photoId}`)
-      .set("token", authToken) // Use "token" header for authentication
+      .get(`/api/v1/reflections/${reflectionId}`)
+      .set("Authorization", `Bearer ${authToken}`)
       .expect(200)
       .end((err, res) => {
         if (err) return done(err);
@@ -157,11 +274,11 @@ describe("Test Cases for API get photo by ID", () => {
       });
   });
 
-  it("Should return an error response for a non-existent photo", (done) => {
-    // Make a request to get a non-existent photo by ID with the authToken
+  it("Should return an error response for a non-existent Reflection", (done) => {
+    // Make a request to get a non-existent Reflection by ID with the authToken
     request(app)
-      .get("/photos/1212")
-      .set("token", authToken)
+      .get("/api/v1/reflections/1212")
+      .set("Authorization", `Bearer ${authToken}`)
       .expect(404)
       .end((err, res) => {
         if (err) return done(err);
@@ -170,9 +287,93 @@ describe("Test Cases for API get photo by ID", () => {
   });
 
   it("Should return an error response without authentication", (done) => {
-    // Make a request to get a photo by ID without authentication
+    // Make a request to get a Reflection by ID without authentication
     request(app)
-      .get(`/photos/${photoId}`)
+      .get(`/api/v1/reflections/${reflectionId}`)
+      .expect(401)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+});
+
+describe("Test Cases for API delete Reflection by ID", () => {
+  let reflectionId;
+
+  beforeAll(async (done) => {
+    try {
+      // Register and login
+      const userResponse = await request(app).post("/api/v1/users/register").send(dataUser);
+      const loginResponse = await request(app).post("/api/v1/users/login").send({
+        email: dataUser.email,
+        password: dataUser.password,
+      });
+
+      authToken = loginResponse.body.access_token;
+
+      // Create a Reflection
+      const createResponse = await request(app)
+        .post("/api/v1/reflections")
+        .set("Authorization", `Bearer ${authToken}`) // Use "Authorization" header for authentication
+        .send({
+          success: "Test Success",
+          low_point: "Test Low Point",
+          take_away: "Test Take Away",
+        })
+        .expect(201);
+
+      reflectionId = createResponse.body.id;
+      done();
+    } catch (error) {
+      console.error(error);
+      done(error);
+    }
+  });
+
+  afterAll(async (done) => {
+    try {
+      // Clean up the user data
+      const query = {
+        text: "DELETE FROM Users",
+      };
+
+      await db.query(query);
+
+      done();
+    } catch (error) {
+      console.error(error);
+      done(error);
+    }
+  });
+
+  it("Should delete a Reflection by ID and return a success response", (done) => {
+    request(app)
+      .delete(`/api/v1/reflections/${reflectionId}`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(204)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+
+  it("Should return an error response for a non-existent Reflection", (done) => {
+    // Make a request to delete a non-existent Reflection by ID with the authToken
+    request(app)
+      .delete("/api/v1/reflections/1212")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(404)
+      .end((err, res) => {
+        if (err) return done(err);
+        done();
+      });
+  });
+
+  it("Should return an error response without authentication", (done) => {
+    // Make a request to delete a Reflection by ID without authentication
+    request(app)
+      .delete(`/api/v1/reflections/${reflectionId}`)
       .expect(401)
       .end((err, res) => {
         if (err) return done(err);
