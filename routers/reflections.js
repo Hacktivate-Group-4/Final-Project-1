@@ -7,6 +7,10 @@ router.post("/", authentication, reflectionsController.createReflection);
 
 router.get("/", authentication, reflectionsController.getUserReflections);
 
-// router.use("/:id", authorization);
+router.use("/:id", authorization);
+
+router.put("/:id", authentication, reflectionsController.editReflection);
+
+router.get("/:id", authentication, reflectionsController.getReflectionById);
 
 module.exports = router;

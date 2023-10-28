@@ -1,5 +1,3 @@
-const db = require("pg");
-
 function authorization(req, res, next) {
   const db = req.app.get("db");
   const reqId = req.params.id;
