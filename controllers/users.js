@@ -33,7 +33,6 @@ const registerUser = async (req, res) => {
       const result = await db.query(query);
       res.status(201).json(result.rows[0]);
     } catch (error) {
-      console.error("Error executing query:", error);
       res.status(400).json({ message: "Email already used!" });
     }
   } catch (error) {
