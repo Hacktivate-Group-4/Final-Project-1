@@ -21,6 +21,7 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
 }
 ```
 ##### Output dari endpoint ini :
+
 ###### *Response (201 - Created)*
 
 ```markdown
@@ -30,6 +31,7 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
 }
 
 ```
+
 ###### *Response (400 - Bad Request)*
 
 ```markdown
@@ -40,15 +42,89 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
 ```
 
 ### Login User
+#### *Request Body*
+```markdown
+{
+  "email": "<email>",
+  "password": "<password>"
+}
+`````
 
-#### Endpoint: POST `/users/Login`
+#### Endpoint: POST `/users/Login`uf
+#### *Response (200)*
+```markdown
+{
+  "access_token": "<your access token>"
+}
+`````
 
+#### *Response (401)*
+``````markdown
+{
+  "message": "Email or password invalid!"
+}
+``````
 ### Create Reflection
+#### *Request body*
+``````markdown
+{
+  "success": "<posted success>",
+  "low_point": "<posted low point>",
+  "take_away": "<posted take away>",
+}
+``````
+### *Request body*
+``````markdown
+{
+  "Authorization": "bearer <your access token>"
+}
 
-#### Endpoint: POST `/users/register`
+### *Response (201 - Created)*
+``````markdown
+{
+  "id": <given id by system>,
+  "success": "<posted success>",
+  "low_point": "<posted low point>",
+  "take_away": "<posted take away>",
+  "UserId": "<UserId>",
+  "createdAt": "2023-04-20T07:15:12.149Z",
+  "updatedAt": "2023-04-20T07:15:12.149Z",
+}
+
+### *Response (401)*
+``````markdown
+{
+  "message": "Unauthorized"
+}
+
+
 
 ### Get User Reflections
+### *Request Header*
+``````markdown
+{
+  "Authorization": "bearer <your access token>"
+}
 
+### *Response (200)*
+``````markdown
+[
+	{
+  "id": <given id by system>,
+  "success": "<posted success>",
+  "low_point": "<posted low point>",
+  "take_away": "<posted take away>",
+  "UserId": "<UserId>",
+  "createdAt": "2023-04-20T07:15:12.149Z",
+  "updatedAt": "2023-04-20T07:15:12.149Z",
+	}
+]
+
+### *Reponse (401)*
+``````markdown
+{
+  "message": "Unauthorized"
+}
 #### Endpoint: GET `/reflections`
 
 ### Get User Reflection By ID
@@ -59,11 +135,73 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
 
 #### Endpoint: PUT `/reflections/:id`
 
+### *Request Header*
+``````markdown
+{
+  "Authorization": "bearer <your access token>"
+}
+
+### *Request Param*
+``````markdown
+{
+  "id": "<id reflections>"
+}
+
+### *Request Body*
+``````markdown
+{
+  "success": "<posted success>",
+  "low_point": "<posted low point>",
+  "take_away": "<posted take away>"
+}
+
+### *Response (200)*
+``````markdown
+{
+  "id": <given id by system>,
+  "success": "<posted success>",
+  "low_point": "<posted low point>",
+  "take_away": "<posted take away>",
+  "UserId": "<UserId>",
+  "createdAt": "2023-04-20T07:15:12.149Z",
+  "updatedAt": "2023-04-20T07:15:12.149Z",
+}
+
+### *Response (401)*
+``````markdown
+{
+  "message": "Unauthorized"
+}
+
+
+
 ### Delete User Reflection By ID
+### *Request Header*
+``````markdown
+{
+  "Authorization": "bearer <your access token>"
+}
 
 #### Endpoint: DELETE `/reflections/:id`
+### *Request Params*
+``````markdown
+{
+  "id": "<id reflections>"
+}
 
+### Delete Sukses
+### *Response (200)*
+``````markdown
+{
+  "message": "Success delete"
+}
 
+### 
+### *Response (401)*
+``````markdown
+{
+  "message": "Unauthorized"
+}
 
 ## Lisensi
 
