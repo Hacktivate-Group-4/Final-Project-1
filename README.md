@@ -73,7 +73,7 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
   "take_away": "<posted take away>",
 }
 ``````
-#### *Request body*
+#### *Request Header*
 ```markdown
 {
   "Authorization": "bearer <your access token>"
@@ -126,9 +126,6 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
   "message": "Unauthorized"
 }
 ``````
-
-### Get User Reflection By ID
-#### Endpoint: GET `/reflections/:id`
 
 
 ### Edit User Reflection By ID
@@ -199,7 +196,7 @@ CRUD REFLECTION API adalah salah satu fitur utama yang memungkinkan pengembang a
   "message": "Success delete"
 }
 `````
-### gagal
+
 #### *Response (401)*
 ```markdown
 {
