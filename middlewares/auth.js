@@ -7,10 +7,10 @@ const authentication = async (req, res, next) => {
     const token = req.headers["authorization"] || req.headers["Authorization"];
 
     if (!token) {
-      throw {
+      return res.status(401).json({
         code: 401,
         message: "Token not provided!",
-      };
+      });
     }
 
     const decoded = verifyToken(token);

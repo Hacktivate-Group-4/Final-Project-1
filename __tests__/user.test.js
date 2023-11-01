@@ -1,7 +1,7 @@
 const request = require("supertest");
 const app = require("../index");
-const dotenv = require("dotenv");
 const { Pool } = require("pg");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
@@ -74,73 +74,186 @@ describe("Test Cases for Users API", () => {
   });
 });
 
-describe("POST /reflections", () => {
+describe("Test Cases for Reflections API", () => {
   beforeAll(async () => {
-    try {
-      // Hapus semua data pengguna
-      const query = {
-        text: "DELETE FROM users",
-      };
+    // Hapus semua user yang ada
+    await db.query("DELETE FROM Users");
 
-      await db.query(query);
+    // Register user
+    await request(app).post("/users/register").send(dataUser);
 
-      // Register pengguna
-      const registerResponse = await request(app)
-        .post("/users/register")
-        .send(dataUser)
-        .expect(201);
-
-      // Login pengguna dan simpan token
-      const loginResponse = await request(app).post("/users/login").send(dataUser).expect(200);
-
-      authToken = loginResponse.body.token;
-    } catch (error) {
-      console.error(error);
-    }
+    // Login user dan simpan token
+    const ResponseToken = await request(app).post("/users/login").send(dataUser);
+    authToken = ResponseToken.body.token;
   });
 
   afterAll(async () => {
-    try {
-      // Hapus semua data pengguna
-      const query = {
-        text: "DELETE FROM users",
+    // Hapus user setelah pengujian selesai
+    await db.query("DELETE FROM Users");
+  });
+
+  describe("Test Cases for Create Reflections", () => {
+    it("should create a new reflection", async () => {
+      const newReflection = {
+        success: "Test Success",
+        low_point: "Test Low Point",
+        take_away: "Test Take Away",
       };
 
-      await db.query(query);
-    } catch (error) {
-      console.error(error);
-    }
-  });
+      const response = await request(app)
+        .post("/reflections")
+        .set("Authorization", authToken)
+        .send(newReflection);
 
-  it("should create a reflection and return a success response", async () => {
-    const response = await request(app)
-      .post("/reflections")
-      .set("Authorization", `Bearer ${authToken}`)
-      .send({
+      expect(response.statusCode).toBe(201);
+      expect(response.body).toHaveProperty("id");
+      expect(response.body.success).toBe(newReflection.success);
+      expect(response.body.low_point).toBe(newReflection.low_point);
+      expect(response.body.take_away).toBe(newReflection.take_away);
+    });
+
+    it("should return unauthorized without authorization token", async () => {
+      const newReflection = {
         success: "Test Success",
         low_point: "Test Low Point",
         take_away: "Test Take Away",
-      })
-      .expect(201);
+      };
 
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty("id");
-    expect(response.body).toHaveProperty("success", "Test Success");
-    expect(response.body).toHaveProperty("low_point", "Test Low Point");
-    expect(response.body).toHaveProperty("take_away", "Test Take Away");
-    expect(response.body).toHaveProperty("UserId");
+      const response = await request(app)
+        .post("/reflections")
+        .set("Authorization", "")
+        .send(newReflection);
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toHaveProperty("message", "Token not provided!");
+    });
   });
 
-  it("should return an error response without authentication", async () => {
-    const response = await request(app)
-      .post("/reflections")
-      .send({
+  describe("Test Cases for Get User Reflections", () => {
+    it("should get user reflections", async () => {
+      const response = await request(app).get("/reflections").set("Authorization", authToken);
+      expect(response.statusCode).toBe(200);
+    });
+    it("should return unauthorized without authorization token", async () => {
+      const response = await request(app).get("/reflections");
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toHaveProperty("message", "Token not provided!");
+    });
+  });
+
+  describe("Test Cases for Get User Reflections by ID", () => {
+    let reflectionId;
+
+    beforeAll(async () => {
+      const newReflection = {
         success: "Test Success",
         low_point: "Test Low Point",
         take_away: "Test Take Away",
-      })
-      .expect(401);
+      };
 
-    expect(response.status).toBe(401);
+      const response = await request(app)
+        .post("/reflections")
+        .set("Authorization", authToken)
+        .send(newReflection);
+
+      reflectionId = response.body.id;
+    });
+
+    it("should get user reflection by ID with authorization token", async () => {
+      const response = await request(app)
+        .get(`/reflections/${reflectionId}`)
+        .set("Authorization", authToken);
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should return unauthorized without authorization token", async () => {
+      const response = await request(app).get(`/reflections/${reflectionId}`); // Tidak ada header Authorization
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toHaveProperty("message", "Token not provided!");
+    });
+  });
+
+  describe("Test Cases for Edit Reflection", () => {
+    let reflectionId;
+
+    beforeAll(async () => {
+      const newReflection = {
+        success: "Test Success",
+        low_point: "Test Low Point",
+        take_away: "Test Take Away",
+      };
+
+      const response = await request(app)
+        .post("/reflections")
+        .set("Authorization", authToken)
+        .send(newReflection);
+
+      reflectionId = response.body.id;
+    });
+
+    it("should edit a user reflection", async () => {
+      const updatedReflection = {
+        success: "Updated Success",
+        low_point: "Updated Low Point",
+        take_away: "Updated Take Away",
+      };
+
+      const response = await request(app)
+        .put(`/reflections/${reflectionId}`)
+        .set("Authorization", authToken)
+        .send(updatedReflection);
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should return unauthorized without authorization token", async () => {
+      const updatedReflection = {
+        success: "Updated Success",
+        low_point: "Updated Low Point",
+        take_away: "Updated Take Away",
+      };
+
+      const response = await request(app)
+        .put(`/reflections/${reflectionId}`)
+        .send(updatedReflection); // Tidak ada header Authorization
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toHaveProperty("message", "Token not provided!");
+    });
+  });
+
+  describe("Test Cases for Delete Reflection", () => {
+    let reflectionId;
+
+    beforeAll(async () => {
+      const newReflection = {
+        success: "Test Success",
+        low_point: "Test Low Point",
+        take_away: "Test Take Away",
+      };
+
+      const response = await request(app)
+        .post("/reflections")
+        .set("Authorization", authToken)
+        .send(newReflection);
+
+      reflectionId = response.body.id;
+    });
+
+    it("should delete a user reflection with authorization token", async () => {
+      const response = await request(app)
+        .delete(`/reflections/${reflectionId}`)
+        .set("Authorization", authToken);
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it("should return unauthorized without authorization token", async () => {
+      const response = await request(app).delete(`/reflections/${reflectionId}`); // Tidak ada header Authorization
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toHaveProperty("message", "Token not provided!");
+    });
   });
 });
